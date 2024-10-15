@@ -9,22 +9,39 @@ class Lexer:
 
     # Move to the next position in the code.
     def advance(self):
-        # TODO: Students need to complete the logic to advance the position.
-        pass
+        self.position += 1
+        if self.position < len(self.code):
+            self.current_char = self.code[self.position]
+        else:
+            self.current_char = None
     # Skip whitespaces.
     def skip_whitespace(self):
-        # TODO: Complete logic to skip whitespaces.
-        pass
+        while self.current_char is not None and self.current_char.isspace(): 
+            self.advance()
     # Tokenize an identifier.
     def identifier(self):
         result = ''
-        # TODO: Complete logic for handling identifiers.
-        return ('IDENTIFIER', result)
+        while self.current_char is not None and (self.current_char.isalnum() or self.current_char == '_'):
+            result += self.current_char
+            self.advance()
+    
+        if result == 'if':
+            return ('IF', result)
+        elif result == 'else':
+            return ('ELSE', result)
+        elif result == 'while':
+            return ('WHILE', result)
+        else:
+            return ('IDENTIFIER', result)
 
     # Tokenize a number.
     def number(self):
-        # TODO: Implement logic to tokenize numbers.
-        return ('NUMBER', 0)
+        result = ''
+        while self.current_char is not None and self.current_char.isdigit():
+            result += self.current_char
+            self.advance()
+        return ('NUMBER', int(result))
+    
 
     def token(self):
         while self.current_char is not None:
@@ -42,16 +59,62 @@ class Lexer:
                 return ident
             if self.current_char.isdigit():
                 return self.number()
-
+            
             # TODO: Add logic for operators and punctuation tokens.
             
+            if self.current_char == '=':
+                self.advance()
+                if self.current_char == '=':
+                    self.advance()
+                    return ('EQUALS', '==')
+                return ('ASSIGN', '=')
+            if self.current_char == '!':
+                self.advance()
+                if self.current_char == '=':
+                    self.advance()
+                    return ('NEQ', '!=')
+            if self.current_char == '<':
+                self.advance()
+                return ('LESS', '<')
+            if self.current_char == '>':
+                self.advance()
+                return ('GREATER', '>')
+            if self.current_char == '+':
+                self.advance()
+                return ('PLUS', '+')
+            if self.current_char == '-':
+                self.advance()
+                return ('MINUS', '-')
+            if self.current_char == '*':
+                self.advance()
+                return ('MULTIPLY', '*')
+            if self.current_char == '/':
+                self.advance()
+                return ('DIVIDE', '/')
+            if self.current_char == '(':
+                self.advance()
+                return ('LPAREN', '(')
+            if self.current_char == ')':
+                self.advance()
+                return ('RPAREN', ')')
+            if self.current_char == ':':
+                self.advance()
+                return ('COLON', ':')
+            if self.current_char == ',':
+                self.advance()
+                return ('COMMA', ',')
+
             raise ValueError(f"Illegal character at position {self.position}: {self.current_char}")
 
         return ('EOF', None)
 
     # Collect all tokens into a list.
     def tokenize(self):
-        # TODO: Implement the logic to collect tokens.
+        while True:
+            token = self.token()
+            self.tokens.append(token)
+            if token[0] == 'EOF':
+                break
         return self.tokens
 
 
