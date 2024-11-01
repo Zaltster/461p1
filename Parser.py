@@ -192,15 +192,23 @@ class Parser:
 
     # Handle while loops
     def while_stmt(self):
+        print("\n=== While Statement Debug ===")
+        print(f"Current token: {self.current_token}")
+        print(f"Next tokens: {self.tokens[:3]}")  # Show next few tokens
+        
         self.advance()  # skip 'while'
         condition = self.boolean_expression()
+        print(f"Parsed condition: {condition}")
+        
         self.expect('COLON')
+        print(f"Before block: {self.current_token}")
         
-        # Handle the block of statements
         block = self.block()
+        print(f"Parsed block: {block}")
         
-        # Make sure we create the proper AST node
-        return AST.WhileStatement(condition, block)
+        result = AST.WhileStatement(condition, block)
+        print(f"Final while statement: {result}")
+        return result
     
     def block(self):
         statements = []
