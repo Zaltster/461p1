@@ -6,12 +6,6 @@ def run_test(test_input, expected_output):
     This function runs the lexer and parser on the test input,
     compares the parsed AST with the expected output, and returns the result.
     """
-    print("\n=== TEST CASE ===")
-    print("Input:")
-    print(test_input)
-    print("\nExpected Output:")
-    print(expected_output)
-    print("===============\n")
     global count
     # Initialize the lexer and tokenize the input
     lexer = p0.Lexer(test_input)

@@ -192,30 +192,34 @@ class Parser:
 
     # Handle while loops
     def while_stmt(self):
-        self.advance() 
+        self.advance()  # skip 'while'
         condition = self.boolean_expression()
         self.expect('COLON')
-        statements = []
         
-        # Parse statements in the  while block until the end
-        while self.current_token[0] != 'EOF':
-            stmt = self.statement()
-            if stmt:
-                statements.append(stmt)
-           
-            if self.peek() == 'WHILE' or self.current_token[0] == 'EOF':
-                break
-        return AST.WhileStatement(condition, AST.Block(statements))   
+        # Handle the block of statements
+        block = self.block()
+        
+        # Make sure we create the proper AST node
+        return AST.WhileStatement(condition, block)
     
     def block(self):
         statements = []
-        
+    
+    # Keep processing statements until we hit a terminating condition
         while self.current_token[0] not in ['EOF', 'ELSE']:
+            # Get next statement
             stmt = self.statement()
-            statements.append(stmt)
-            
+            if stmt:  # Only add valid statements
+                statements.append(stmt)
+                
+            # Check for block termination conditions
             if self.current_token[0] == 'EOF' or self.peek() == 'ELSE':
                 break
+                
+            # Also break if we're at the same level as outer block
+            if self.peek() == 'WHILE' and self.current_token[0] != 'WHILE':
+                break
+        
         return AST.Block(statements)
     # CHECK LATER
     def expression(self):
@@ -229,14 +233,13 @@ class Parser:
 
     # Handle easy booleans
     def boolean_expression(self):
-        left = self.expression()  # Changed from self.term() to self.expression()
-        
-        # If we have a comparison operator, create a boolean expression
+        left = self.expression()
+    
         if self.current_token[0] in ['EQUALS', 'NEQ', 'GREATER', 'LESS']:
-            op = self.current_token
+            operator = self.current_token
             self.advance()
-            right = self.expression()  # Changed from self.term() to self.expression()
-            return AST.BooleanExpression(left, op, right)
+            right = self.expression()
+            return AST.BooleanExpression(left, operator, right)
         
         return left
 
