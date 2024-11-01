@@ -4,10 +4,9 @@ class Lexer:
     def __init__(self, code):
         self.code = code
         self.position = 0
-        self.current_char = self.code[self.position]
+        self.current_char = self.code[self.position] if code else None
         self.tokens = []
 
-    # Move to next character if needed
     def advance(self):
         self.position += 1
         if self.position < len(self.code):
@@ -35,12 +34,10 @@ class Lexer:
 
     def token(self):
         while self.current_char is not None:
-            # Skip any whitespace
             if self.current_char.isspace():
                 self.skip_whitespace()
                 continue
 
-            # Handles the letters and keywords
             if self.current_char.isalpha():
                 ident = self.identifier()
                 if ident[1] == 'if':
@@ -51,11 +48,9 @@ class Lexer:
                     return ('WHILE', 'while')
                 return ident
 
-            # Handle numbers
             if self.current_char.isdigit():
                 return self.number()
 
-            # Handles operators and symbols
             if self.current_char == '=':
                 self.advance()
                 if self.current_char == '=':
@@ -97,7 +92,6 @@ class Lexer:
                 self.advance()
                 return ('LPAREN', '(')
 
-
             if self.current_char == ')':
                 self.advance()
                 return ('RPAREN', ')')
@@ -105,7 +99,6 @@ class Lexer:
             if self.current_char == ':':
                 self.advance()
                 return ('COLON', ':')
-
 
             if self.current_char == ',':
                 self.advance()
@@ -119,7 +112,6 @@ class Lexer:
         while True:
             token = self.token()
             self.tokens.append(token)
-
             if token[0] == 'EOF':
                 break
         return self.tokens
@@ -133,8 +125,6 @@ class Parser:
     def advance(self):
         if self.tokens:
             self.current_token = self.tokens.pop(0)
-
-
         else:
             self.current_token = ('EOF', None)
 
@@ -148,38 +138,32 @@ class Parser:
             statements.append(stmt)
         return statements
 
-    # Parse different types of statements based on the current token
     def statement(self):
         if self.current_token[0] == 'IDENTIFIER':
             if self.peek() == 'ASSIGN':
                 return self.assign_stmt()
-            
             elif self.peek() == 'LPAREN':
                 return self.function_call()
             else:
                 return self.expression()
         elif self.current_token[0] == 'IF':
             return self.if_stmt()
-        
         elif self.current_token[0] == 'WHILE':
             return self.while_stmt()
         else:
             return self.expression()
 
-    # Handle assignment statements like x = 5
     def assign_stmt(self):
         identifier = self.current_token
-        self.advance()  
+        self.advance()
         self.expect('ASSIGN')
         expression = self.expression()
         return AST.Assignment(identifier, expression)
 
-    # Handles the if statements or the eles
     def if_stmt(self):
-        self.advance()  # skip 'if'
+        self.advance()
         condition = self.boolean_expression()
         self.expect('COLON')
-
         then_block = self.block()
         
         else_block = None
@@ -190,24 +174,25 @@ class Parser:
         
         return AST.IfStatement(condition, then_block, else_block)
 
-    # Handle while loops
     def while_stmt(self):
         self.advance()
         condition = self.boolean_expression()
         self.expect('COLON')
-        block = self.block()
-        return AST.WhileStatement(condition, block)
+        body = []
+        while self.current_token[0] != 'EOF' and self.peek() != 'ELSE':
+            stmt = self.statement()
+            if stmt:
+                body.append(stmt)
+        return AST.WhileStatement(condition, AST.Block(body))
 
-    # inside if/while)
     def block(self):
         statements = []
-        while self.current_token[0] not in ['EOF', 'ELSE'] and self.peek() != 'ELSE':
+        while self.current_token[0] != 'EOF' and self.peek() != 'ELSE':
             stmt = self.statement()
-            if stmt:  # Only add non-None statements
+            if stmt:
                 statements.append(stmt)
         return AST.Block(statements)
 
-    # CHECK LATER
     def expression(self):
         left = self.term()
         while self.current_token[0] in ['PLUS', 'MINUS']:
@@ -217,20 +202,15 @@ class Parser:
             left = AST.BinaryOperation(left, op, right)
         return left
 
-    # Handle easy booleans
     def boolean_expression(self):
-        left = self.expression()  # Changed from self.term() to self.expression()
-        
-        # If we have a comparison operator, create a boolean expression
+        left = self.expression()
         if self.current_token[0] in ['EQUALS', 'NEQ', 'GREATER', 'LESS']:
             op = self.current_token
             self.advance()
-            right = self.expression()  # Changed from self.term() to self.expression()
+            right = self.expression()
             return AST.BooleanExpression(left, op, right)
-        
         return left
 
-    # / and *
     def term(self):
         left = self.factor()
         while self.current_token[0] in ['MULTIPLY', 'DIVIDE']:
@@ -240,7 +220,6 @@ class Parser:
             left = AST.BinaryOperation(left, op, right)
         return left
 
-    # factor
     def factor(self):
         if self.current_token[0] == 'NUMBER':
             val = self.current_token
@@ -251,14 +230,13 @@ class Parser:
             self.advance()
             return val
         elif self.current_token[0] == 'LPAREN':
-            self.advance()  # skip (
+            self.advance()
             expr = self.expression()
-            self.expect('RPAREN')  # expect )
+            self.expect('RPAREN')
             return expr
         else:
             raise ValueError(f"Unexpected token in factor: {self.current_token}")
 
-    # function call 
     def function_call(self):
         func_name = self.current_token
         self.advance()
@@ -271,14 +249,11 @@ class Parser:
         self.expect('RPAREN')
         return AST.FunctionCall(func_name, args)
 
-    # Parse function arguments
     def arg_list(self):
         args = [self.expression()]
-        
         while self.current_token[0] == 'COMMA':
             self.advance()
             args.append(self.expression())
-        
         return args
 
     def expect(self, token_type):
