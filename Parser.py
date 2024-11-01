@@ -7,47 +7,40 @@ class Lexer:
         self.current_char = self.code[self.position]
         self.tokens = []
 
-    # Move to the next position in the code.
+    # Move to next character if needed
     def advance(self):
         self.position += 1
         if self.position < len(self.code):
             self.current_char = self.code[self.position]
         else:
             self.current_char = None
-    # Skip whitespaces.
+    
     def skip_whitespace(self):
-        while self.current_char is not None and self.current_char.isspace(): 
+        while self.current_char is not None and self.current_char.isspace():
             self.advance()
-    # Tokenize an identifier.
+    
     def identifier(self):
         result = ''
         while self.current_char is not None and (self.current_char.isalnum() or self.current_char == '_'):
             result += self.current_char
             self.advance()
-    
-        if result == 'if':
-            return ('IF', result)
-        elif result == 'else':
-            return ('ELSE', result)
-        elif result == 'while':
-            return ('WHILE', result)
-        else:
-            return ('IDENTIFIER', result)
+        return ('IDENTIFIER', result)
 
-    # Tokenize a number.
     def number(self):
-        result = ''
+        num = ''
         while self.current_char is not None and self.current_char.isdigit():
-            result += self.current_char
+            num += self.current_char
             self.advance()
-        return ('NUMBER', int(result))
-    
+        return ('NUMBER', int(num))
 
     def token(self):
         while self.current_char is not None:
+            # Skip any whitespace
             if self.current_char.isspace():
                 self.skip_whitespace()
                 continue
+
+            # Handles the letters and keywords
             if self.current_char.isalpha():
                 ident = self.identifier()
                 if ident[1] == 'if':
@@ -57,62 +50,76 @@ class Lexer:
                 elif ident[1] == 'while':
                     return ('WHILE', 'while')
                 return ident
+
+            # Handle numbers
             if self.current_char.isdigit():
                 return self.number()
-            
-            
-            
+
+            # Handles operators and symbols
             if self.current_char == '=':
                 self.advance()
                 if self.current_char == '=':
                     self.advance()
                     return ('EQUALS', '==')
                 return ('ASSIGN', '=')
+
             if self.current_char == '!':
                 self.advance()
                 if self.current_char == '=':
                     self.advance()
                     return ('NEQ', '!=')
+
             if self.current_char == '<':
                 self.advance()
                 return ('LESS', '<')
+
             if self.current_char == '>':
                 self.advance()
                 return ('GREATER', '>')
+
             if self.current_char == '+':
                 self.advance()
                 return ('PLUS', '+')
+
             if self.current_char == '-':
                 self.advance()
                 return ('MINUS', '-')
+
             if self.current_char == '*':
                 self.advance()
                 return ('MULTIPLY', '*')
+
             if self.current_char == '/':
                 self.advance()
                 return ('DIVIDE', '/')
+
             if self.current_char == '(':
                 self.advance()
                 return ('LPAREN', '(')
+
+
             if self.current_char == ')':
                 self.advance()
                 return ('RPAREN', ')')
+
             if self.current_char == ':':
                 self.advance()
                 return ('COLON', ':')
+
+
             if self.current_char == ',':
                 self.advance()
                 return ('COMMA', ',')
-
+            
             raise ValueError(f"Illegal character at position {self.position}: {self.current_char}")
 
         return ('EOF', None)
 
-    # Collect all tokens into a list.
     def tokenize(self):
         while True:
             token = self.token()
             self.tokens.append(token)
+
             if token[0] == 'EOF':
                 break
         return self.tokens
@@ -121,152 +128,97 @@ class Lexer:
 class Parser:
     def __init__(self, tokens):
         self.tokens = tokens
-        self.current_token = tokens.pop(0)  # Start with the first token
+        self.current_token = tokens.pop(0)
 
     def advance(self):
-        # Move to the next token in the list.
-        
-
         if self.tokens:
             self.current_token = self.tokens.pop(0)
+
+
         else:
             self.current_token = ('EOF', None)
+
     def parse(self):
-        """
-        Entry point for the parser. It will process the entire program.
-        """
         return self.program()
 
     def program(self):
-        """
-        Program consists of multiple statements.
-        """
         statements = []
         while self.current_token[0] != 'EOF':
             stmt = self.statement()
             statements.append(stmt)
         return statements
 
+    # Parse different types of statements based on the current token
     def statement(self):
-        """
-        Determines which type of statement to parse.
-        - If it's an identifier, it could be an assignment or function call.
-        - If it's 'if', it parses an if-statement.
-        - If it's 'while', it parses a while-statement.
-        
-        """
         if self.current_token[0] == 'IDENTIFIER':
-            if self.peek() == 'EQUALS':  # Assignment
-                return self.assign_stmt() #AST of assign_stmt
-            elif self.peek() == 'LPAREN':  # Function call
-                return self.function_call() #AST of function call
+            # Could be assignment or function call
+            if self.peek() == 'ASSIGN':
+                return self.assign_stmt()
+            
+            elif self.peek() == 'LPAREN':
+                return self.function_call()
             else:
                 raise ValueError(f"Unexpected token after identifier: {self.current_token}")
         elif self.current_token[0] == 'IF':
-            return self.if_stmt()#AST of if stmt
+            return self.if_stmt()
         elif self.current_token[0] == 'WHILE':
-            return self.while_stmt()#AST of while stmt
+            return self.while_stmt()
         else:
             return self.expression()
-            # raise ValueError(f"Unexpected token: {self.current_token}")
 
+    # Handle assignment statements like x = 5
     def assign_stmt(self):
-        """
-        Parses assignment statements.
-        Example:
-        x = 5 + 3
-        
-        """
         identifier = self.current_token
-        self.advance()  # Skip identifier
-        self.expect('ASSIGN')  # Skip =
+        self.advance()  
+        self.expect('ASSIGN')
         expression = self.expression()
         return AST.Assignment(identifier, expression)
 
-    
-
+    # Handles the if statements or the eles
     def if_stmt(self):
-        """
-        Parses an if-statement, with an optional else block.
-        Example:
-        if condition:
-            # statements
-        else:
-            # statements
-        """
-        self.advance()  # Skip 'if'
+        self.advance()  # skip 'if'
         condition = self.boolean_expression()
         self.expect('COLON')
+
         then_block = self.block()
-        else_block = None
         
+        else_block = None
         if self.current_token[0] == 'ELSE':
-            self.advance()  # Skip 'else'
+            self.advance()
             self.expect('COLON')
             else_block = self.block()
         
         return AST.IfStatement(condition, then_block, else_block)
 
+    # Handle while loops
     def while_stmt(self):
-        """
-        Parses a while-statement.
-        Example:
-        while condition:
-            # statements
-       
-        """
-        
-        
-        self.advance()  # Skip 'while'
+        self.advance()
         condition = self.boolean_expression()
         self.expect('COLON')
         block = self.block()
         return AST.WhileStatement(condition, block)
 
-
+    # inside if/while)
     def block(self):
-        """
-        Parses a block of statements. A block is a collection of statements grouped by indentation.
-        Example:
-        if condition:
-            # This is a block
-            x = 5
-            y = 10
-        
-        """
         statements = []
-        while self.current_token[0] not in ['EOF', 'ELSE'] and self.peek() != 'ELSE':
-            stmt = self.statement()
-            statements.append(stmt)
+        while self.current_token[0] not in ['EOF', 'ELSE']:
+            statements.append(self.statement())
+            if self.peek() == 'ELSE':
+                break
         return AST.Block(statements)
 
+    # CHECK LATER
     def expression(self):
-        """
-        Parses an expression. Handles operators like +, -, etc.
-        Example:
-        x + y - 5
-        
-        """
         left = self.term()
-        while self.current_token[0] in ['PLUS', 'MINUS']:  # Handle + and -
-            
-            op = self.current_token  # Capture the operator
-            self.advance()  # Skip the operator
-            right = self.term()  # Parse the next term
+        while self.current_token[0] in ['PLUS', 'MINUS']:
+            op = self.current_token
+            self.advance()
+            right = self.term()
             left = AST.BinaryOperation(left, op, right)
-    
         return left
-        
-    
 
+    # Handle easy booleans
     def boolean_expression(self):
-        """
-        Parses a boolean expression. These are comparisons like ==, !=, <, >.
-        Example:
-        x == 5
-        
-        """
-        # write your code here, for reference check expression function
         left = self.term()
         while self.current_token[0] in ['EQUALS', 'NEQ', 'GREATER', 'LESS']:
             op = self.current_token
@@ -275,91 +227,64 @@ class Parser:
             left = AST.BooleanExpression(left, op, right)
         return left
 
+    # / and *
     def term(self):
-        """
-        Parses a term. A term consists of factors combined by * or /.
-        Example:
-        x * y / z
-        
-        """
-        # write your code here, for reference check expression function
         left = self.factor()
         while self.current_token[0] in ['MULTIPLY', 'DIVIDE']:
             op = self.current_token
             self.advance()
             right = self.factor()
             left = AST.BinaryOperation(left, op, right)
-        return left 
+        return left
 
+    # factor
     def factor(self):
-        """
-        Parses a factor. Factors are the basic building blocks of expressions.
-        Example:
-        - A number
-        - An identifier (variable)
-        - A parenthesized expression
-        
-        """
         if self.current_token[0] == 'NUMBER':
-            token = self.current_token
+            val = self.current_token
             self.advance()
-            return token
+            return val
         elif self.current_token[0] == 'IDENTIFIER':
-            token = self.current_token
+            val = self.current_token
             self.advance()
-            return token
+            return val
         elif self.current_token[0] == 'LPAREN':
-            self.advance()  # Skip '('
+            self.advance()  # skip (
             expr = self.expression()
-            self.expect('RPAREN')  # Expect and skip ')'
+            self.expect('RPAREN')  # expect )
             return expr
         else:
             raise ValueError(f"Unexpected token in factor: {self.current_token}")
 
+    # function call 
     def function_call(self):
-        """
-        Parses a function call.
-        Example:
-        myFunction(arg1, arg2)
-        
-        """
         func_name = self.current_token
-        self.advance()  # Skip function name
+        self.advance()
         self.expect('LPAREN')
-    
+        
         args = []
         if self.current_token[0] != 'RPAREN':
             args = self.arg_list()
-    
-        self.expect('RPAREN')
         
+        self.expect('RPAREN')
         return AST.FunctionCall(func_name, args)
 
+    # Parse function arguments
     def arg_list(self):
-        """
-        Parses a list of arguments in a function call.
-        Example:
-        arg1, arg2, arg3
+        args = [self.expression()]
         
-        """
-        args = []
-        args.append(self.expression())
-    
         while self.current_token[0] == 'COMMA':
-            self.advance()  # Skip comma
+            self.advance()
             args.append(self.expression())
-    
+        
         return args
 
     def expect(self, token_type):
-       
         if self.current_token[0] == token_type:
-            self.advance()  # Move to the next token
+            self.advance()
         else:
             raise ValueError(f"Expected {token_type} but got {self.current_token[0]}")
 
     def peek(self):
         if self.tokens:
             return self.tokens[0][0]
-        else:
-            return None
+        return None
