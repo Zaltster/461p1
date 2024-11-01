@@ -192,90 +192,31 @@ class Parser:
 
     # Handle while loops
     def while_stmt(self):
-        print("\n=== WHILE STATEMENT PARSING ===")
-        print(f"Starting while statement with token: {self.current_token}")
-        
-        self.advance()  # skip 'while'
-        print(f"After while token, current token: {self.current_token}")
-        
+        self.advance() 
         condition = self.boolean_expression()
-        print(f"Parsed condition: {condition}")
-        print(f"Current token after condition: {self.current_token}")
-        
         self.expect('COLON')
-        print(f"After colon, current token: {self.current_token}")
-        
         statements = []
-        print("Starting to parse block statements...")
         
+        # Parse statements in the  while block until the end
         while self.current_token[0] != 'EOF':
-            print(f"\nParsing statement in while block, current token: {self.current_token}")
             stmt = self.statement()
-            print(f"Parsed statement: {stmt}")
-            
             if stmt:
                 statements.append(stmt)
-                print(f"Added statement to block. Block now has {len(statements)} statements")
-            
-            print(f"After statement, current token: {self.current_token}")
-            print(f"Next token (peek): {self.peek()}")
-            
+           
             if self.peek() == 'WHILE' or self.current_token[0] == 'EOF':
-                print("Detected end of while block")
                 break
-        
-        result = AST.WhileStatement(condition, AST.Block(statements))
-        print(f"\nFinal while statement AST: {result}")
-        print("=== END WHILE STATEMENT PARSING ===\n")
-        return result
-
-    def boolean_expression(self):
-        print("\n--- Boolean Expression Parsing ---")
-        print(f"Starting boolean expression with token: {self.current_token}")
-        
-        left = self.expression()
-        print(f"Left side of boolean: {left}")
-        print(f"Current token after left side: {self.current_token}")
-        
-        if self.current_token[0] in ['EQUALS', 'NEQ', 'GREATER', 'LESS']:
-            op = self.current_token
-            print(f"Found operator: {op}")
-            self.advance()
-            print(f"After operator, current token: {self.current_token}")
-            
-            right = self.expression()
-            print(f"Right side of boolean: {right}")
-            result = AST.BooleanExpression(left, op, right)
-            print(f"Created boolean expression: {result}")
-            return result
-        
-        print("No boolean operator found, returning left expression")
-        return left
-
+        return AST.WhileStatement(condition, AST.Block(statements))   
+    
     def block(self):
-        print("\n*** Block Parsing ***")
-        print(f"Starting block with token: {self.current_token}")
-        
         statements = []
+        
         while self.current_token[0] not in ['EOF', 'ELSE']:
-            print(f"\nParsing statement in block, current token: {self.current_token}")
             stmt = self.statement()
-            print(f"Parsed statement: {stmt}")
-            
             statements.append(stmt)
-            print(f"Added statement. Block now has {len(statements)} statements")
-            
-            print(f"Current token after statement: {self.current_token}")
-            print(f"Next token (peek): {self.peek()}")
             
             if self.current_token[0] == 'EOF' or self.peek() == 'ELSE':
-                print("Detected end of block")
                 break
-        
-        result = AST.Block(statements)
-        print(f"\nFinal block AST: {result}")
-        print("*** End Block Parsing ***\n")
-        return result
+        return AST.Block(statements)
     # CHECK LATER
     def expression(self):
         left = self.term()
