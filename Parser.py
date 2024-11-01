@@ -192,29 +192,24 @@ class Parser:
 
     # Handle while loops
     def while_stmt(self):
+        print("Processing while statement")
+        print(f"Current token: {self.current_token}")
         self.advance()
+        print(f"Condition starts with: {self.current_token}")
         condition = self.boolean_expression()
         self.expect('COLON')
-        statements = []
-        while self.current_token[0] not in ['EOF', 'ELSE']:
-            stmt = self.statement()
-            if stmt:
-                statements.append(stmt)
-            # Check if we've reached the end of the while block
-            if self.current_token[0] == 'EOF' or (self.current_token[0] != 'WHILE' and self.peek() == 'WHILE'):
-                break
-        return AST.WhileStatement(condition, AST.Block(statements))
-    
+        print(f"Before block: {self.current_token}")
+        block = self.block()
+        print(f"After block: {self.current_token}")
+        return AST.WhileStatement(condition, block)
+
     # inside if/while)
     def block(self):
         statements = []
-        while self.current_token[0] not in ['EOF', 'ELSE']:
+        while self.current_token[0] not in ['EOF', 'ELSE'] and self.peek() != 'ELSE':
             stmt = self.statement()
-            if stmt:
+            if stmt:  # Only add non-None statements
                 statements.append(stmt)
-            # Break if we reach end of block
-            if self.current_token[0] == 'EOF' or self.peek() == 'ELSE':
-                break
         return AST.Block(statements)
 
     # CHECK LATER
