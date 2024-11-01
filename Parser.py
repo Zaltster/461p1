@@ -195,16 +195,26 @@ class Parser:
         self.advance()
         condition = self.boolean_expression()
         self.expect('COLON')
-        block = self.block()
-        return AST.WhileStatement(condition, block)
-
+        statements = []
+        while self.current_token[0] not in ['EOF', 'ELSE']:
+            stmt = self.statement()
+            if stmt:
+                statements.append(stmt)
+            # Check if we've reached the end of the while block
+            if self.current_token[0] == 'EOF' or (self.current_token[0] != 'WHILE' and self.peek() == 'WHILE'):
+                break
+        return AST.WhileStatement(condition, AST.Block(statements))
+    
     # inside if/while)
     def block(self):
         statements = []
-        while self.current_token[0] not in ['EOF', 'ELSE'] and self.peek() != 'ELSE':
+        while self.current_token[0] not in ['EOF', 'ELSE']:
             stmt = self.statement()
-            if stmt:  # Only add non-None statements
+            if stmt:
                 statements.append(stmt)
+            # Break if we reach end of block
+            if self.current_token[0] == 'EOF' or self.peek() == 'ELSE':
+                break
         return AST.Block(statements)
 
     # CHECK LATER
