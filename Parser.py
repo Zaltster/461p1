@@ -151,16 +151,16 @@ class Parser:
     # Parse different types of statements based on the current token
     def statement(self):
         if self.current_token[0] == 'IDENTIFIER':
-            # Could be assignment or function call
             if self.peek() == 'ASSIGN':
                 return self.assign_stmt()
             
             elif self.peek() == 'LPAREN':
                 return self.function_call()
             else:
-                raise ValueError(f"Unexpected token after identifier: {self.current_token}")
+                return self.expression()
         elif self.current_token[0] == 'IF':
             return self.if_stmt()
+        
         elif self.current_token[0] == 'WHILE':
             return self.while_stmt()
         else:
@@ -201,10 +201,10 @@ class Parser:
     # inside if/while)
     def block(self):
         statements = []
-        while self.current_token[0] not in ['EOF', 'ELSE']:
-            statements.append(self.statement())
-            if self.peek() == 'ELSE':
-                break
+        while self.current_token[0] not in ['EOF', 'ELSE'] and self.peek() != 'ELSE':
+            stmt = self.statement()
+            if stmt:  # Only add non-None statements
+                statements.append(stmt)
         return AST.Block(statements)
 
     # CHECK LATER
@@ -219,12 +219,15 @@ class Parser:
 
     # Handle easy booleans
     def boolean_expression(self):
-        left = self.term()
-        while self.current_token[0] in ['EQUALS', 'NEQ', 'GREATER', 'LESS']:
+        left = self.expression()  # Changed from self.term() to self.expression()
+        
+        # If we have a comparison operator, create a boolean expression
+        if self.current_token[0] in ['EQUALS', 'NEQ', 'GREATER', 'LESS']:
             op = self.current_token
             self.advance()
-            right = self.term()
-            left = AST.BooleanExpression(left, op, right)
+            right = self.expression()  # Changed from self.term() to self.expression()
+            return AST.BooleanExpression(left, op, right)
+        
         return left
 
     # / and *
